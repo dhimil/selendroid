@@ -21,7 +21,10 @@ import org.jboss.netty.handler.codec.http.HttpMethod;
 import org.json.JSONObject;
 import org.junit.Assert;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 
+import com.xtremelabs.robolectric.RobolectricTestRunner;
+@RunWith(RobolectricTestRunner.class)
 public class CreateSessionHandlerTest extends BaseTest {
 
   @Test

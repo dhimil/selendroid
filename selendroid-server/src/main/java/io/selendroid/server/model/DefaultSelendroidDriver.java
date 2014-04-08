@@ -177,7 +177,7 @@ public class DefaultSelendroidDriver implements SelendroidDriver {
    */
   @Override
   public JSONObject getSessionCapabilities(String sessionId) {
-    SelendroidLogger.log("session: " + sessionId);
+    SelendroidLogger.info("session: " + sessionId);
 
     JSONObject copy;
     try {
@@ -199,7 +199,7 @@ public class DefaultSelendroidDriver implements SelendroidDriver {
       copy.put(SUPPORTS_JAVASCRIPT, true);
       copy.put("version", serverInstrumentation.getServerVersion());
       copy.put(ACCEPT_SSL_CERTS, true);
-      SelendroidLogger.log("capabilities: " + copy);
+      SelendroidLogger.info("capabilities: " + copy);
       return copy;
     } catch (JSONException e) {
       throw new SelendroidException(e);
@@ -384,7 +384,7 @@ public class DefaultSelendroidDriver implements SelendroidDriver {
 
     selendroidNativeDriver =
         new SelendroidNativeDriver(serverInstrumentation, (NativeSearchScope) nativeSearchScope);
-    SelendroidLogger.log("new s: " + session.getSessionId());
+    SelendroidLogger.info("new s: " + session.getSessionId());
 
     nativeExecuteScriptMap.put("invokeMenuActionSync", new InvokeMenuAction(session,
         serverInstrumentation));
