@@ -356,6 +356,16 @@ public class DefaultSelendroidDriver implements SelendroidDriver {
 
   private void initSelendroidWebDriver(String type) {
     selendroidWebDriver = new SelendroidWebDriver(serverInstrumentation, type);
+
+    try {
+      JSONObject capabilities = session.getCapabilities();
+      if ( capabilities.has("proxy") ) {
+        JSONObject proxySettings = capabilities.getJSONObject("proxy");
+        selendroidWebDriver.setProxy(proxySettings);
+      }
+    } catch (Exception ex) {
+      SelendroidLogger.log("Error setting proxy", ex);
+    }
     webviewSearchScope =
         new WebviewSearchScope(session.getKnownElements(), selendroidWebDriver.getWebview(),
             selendroidWebDriver);

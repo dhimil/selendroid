@@ -668,4 +668,29 @@ public class SelendroidWebDriver {
   public void setAsyncScriptTimeout(long timeout) {
     asyncScriptTimeout = timeout;
   }
+
+    public void setProxy(JSONObject proxySettings) throws JSONException {
+        if (proxySettings == null) {
+            //Proxy not present
+            return;
+        }
+        String proxy = proxySettings.getString("httpProxy");
+
+        if(proxy == null){
+            SelendroidLogger.log("proxy is still null");
+            return;
+        }
+
+        try {
+            String[] hostParams = proxy.split(":");
+            // webview.enablePlatformNotifications();
+            String host = hostParams[0];
+            int port = Integer.parseInt(hostParams[1]);
+            Context context=  ServerInstrumentation.getInstance()
+                    .getCurrentActivity().getApplicationContext();
+            ProxySettings.setProxy(context, host, port);
+        } catch (Exception ex) {
+            SelendroidLogger.log("Exception setting proxy", ex);
+        }
+    }
 }
