@@ -13,11 +13,27 @@
  */
 package io.selendroid.server.model;
 
+import android.content.Context;
+import android.webkit.JsPromptResult;
+import android.webkit.JsResult;
+import android.webkit.WebChromeClient;
+import android.webkit.WebSettings;
+import android.webkit.WebView;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Queue;
+import java.util.Set;
+
 import io.selendroid.ServerInstrumentation;
 import io.selendroid.android.AndroidTouchScreen;
 import io.selendroid.android.KeySender;
 import io.selendroid.android.MotionSender;
-import io.selendroid.android.ViewHierarchyAnalyzer;
 import io.selendroid.android.WebViewKeySender;
 import io.selendroid.android.WebViewMotionSender;
 import io.selendroid.android.internal.DomWindow;
@@ -27,28 +43,12 @@ import io.selendroid.server.model.internal.WebViewHandleMapper;
 import io.selendroid.server.model.js.AndroidAtoms;
 import io.selendroid.util.SelendroidLogger;
 
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Queue;
-import java.util.Set;
-
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-
-import android.webkit.JsPromptResult;
-import android.webkit.JsResult;
-import android.webkit.WebChromeClient;
-import android.webkit.WebSettings;
-import android.webkit.WebView;
-
 public class SelendroidWebDriver {
   private static final String ELEMENT_KEY = "ELEMENT";
   private static final long FOCUS_TIMEOUT = 1000L;
   private static final long LOADING_TIMEOUT = 30000L;
   private static final long POLLING_INTERVAL = 50L;
-  private static final long START_LOADING_TIMEOUT = 700L;
+  private static final long START_LOADING_TIMEOUT = 10000L;
   static final long UI_TIMEOUT = 3000L;
   private volatile boolean pageDoneLoading;
   private volatile boolean pageStartedLoading;
@@ -289,9 +289,11 @@ public class SelendroidWebDriver {
 
 
   public void get(final String url) {
+    SelendroidLogger.log("Url load: " + url);
     serverInstrumentation.getCurrentActivity().runOnUiThread(new Runnable() {
       public void run() {
         webview.loadUrl(url);
+        webview.getSettings().setRenderPriority(WebSettings.RenderPriority.HIGH);
       }
     });
     waitForPageToLoad();
@@ -441,24 +443,56 @@ public class SelendroidWebDriver {
   }
 
   void waitForPageToLoad() {
+    try {
+      // Wait for page load
+      Thread.sleep(2000L);
+    } catch (InterruptedException e) {
+      SelendroidLogger.log("Exception for page load wait", e);
+    }
+    resetPageIsLoading();
     synchronized (syncObject) {
+      String pageState = null;
       long timeout = System.currentTimeMillis() + START_LOADING_TIMEOUT;
       while (!pageStartedLoading && (System.currentTimeMillis() < timeout)) {
         try {
           syncObject.wait(POLLING_INTERVAL);
-        } catch (InterruptedException e) {
+          pageState = getPageState();
+          SelendroidLogger.log("BrowserStack - Page state: " + pageState);
+          if ("loading".equals(pageState) ||  "interactive".equals(pageState)) {
+            pageStartedLoading = true;
+            break;
+          }
+          Thread.sleep(1000L);
+        } catch (Exception e) {
           throw new RuntimeException();
         }
       }
 
       long end = System.currentTimeMillis() + LOADING_TIMEOUT;
       while (!pageDoneLoading && pageStartedLoading && (System.currentTimeMillis() < end)) {
+        pageState = getPageState();
+        SelendroidLogger.log("BrowserStack - Page state: " + pageState);
+        if(pageState.equalsIgnoreCase("complete")) {
+          pageDoneLoading = true;
+          break;
+        }
         try {
-          syncObject.wait(LOADING_TIMEOUT);
+          Thread.sleep(1000L);
         } catch (InterruptedException e) {
           throw new RuntimeException(e);
         }
       }
+    }
+  }
+
+  private String getPageState() {
+    try {
+        JSONObject json = new JSONObject((String) injectJavascript("return document.readyState;", null, null));
+        String value = json.getString("value");
+        return value;
+    } catch (Exception ex) {
+        SelendroidLogger.log("BrowserStack JSON exception", ex);
+        return "";
     }
   }
 
